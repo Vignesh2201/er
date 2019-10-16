@@ -1,0 +1,34 @@
+import numpy as np
+import model as mdl
+import grid
+
+
+def evaluation_step(evaluation_dataset, C, COV, density_integrals,\
+                    structure, k, edges_of_cell):
+    evaluation_data = evaluation_dataset[evaluation_dataset[:, -1] == 1, 0: -1]
+    freqs, input_coordinates, extended_shape_of_grid, valid_timesteps =\
+        params_for_model(evaluation_dataset, C, COV, density_integrals,\
+                         structure, k, edges_of_cell, evaluation_data)
+    model = np.histogramdd(input_coordinates,\
+                           bins=extended_shape_of_grid[0],
+                           range=extended_shape_of_grid[1],\
+                           normed=False, weights=freqs)[0]
+    reality = np.histogramdd(evaluation_data,\
+                             bins=extended_shape_of_grid[0],
+                             range=extended_shape_of_grid[1],\
+                             normed=False, weights=None)[0]
+    diff = (np.sum((reality - model)[valid_timesteps] ** 2)) ** 0.5
+
+    model_filename = '../out/model' + str(len(structure[1])) + '.txt'
+    reality_filename = '../out/reality' + str(len(structure[1])) + '.txt'
+    with open(model_filename, 'w') as mf:
+        np.savetxt(mf, model)
+    with open(reality_filename, 'w') as rf:
+        np.savetxt(rf, reality)
+
+    return diff
+
+
+
+def params_for_model(evaluation_dataset, C, COV, density_integrals,
+              structure, k, edges_of_cell, evaluation_data):
